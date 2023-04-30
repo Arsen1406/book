@@ -2,6 +2,7 @@ from django.test import Client, TestCase
 from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from books.models import Books
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
@@ -33,6 +34,7 @@ class TestBooks(TestCase):
         self.client = Client()
         self.autorized_client = Client()
         self.user = User.objects.get(username='TestUser')
+        self.token = str(RefreshToken.for_user(self.user).access_token)
         self.autorized_client.force_login(self.user)
         self.book = Books.objects.get(title='Test_book')
 
@@ -40,7 +42,7 @@ class TestBooks(TestCase):
         for address in self.endpoints:
             response = self.client.get(address)
             self.assertEquals(
-                HTTPStatus(response.status_code).phrase == 'OK',
+                HTTPStatus(response.status_code).phrase, 'OK',
                 f'Эндпоинт {address} не доступен!'
             )
 
@@ -48,23 +50,37 @@ class TestBooks(TestCase):
         endpoint = f'{LOCAL_HOST}/api/v1/books/'
         response = self.client.post(endpoint)
         self.assertEquals(
-            HTTPStatus(response.status_code).phrase == 'Unauthorized',
-            f'Неовтаризованый пользователь не может добавить книгу статус {response.status_code}!'
+            HTTPStatus(response.status_code).phrase,
+            'Unauthorized',
+            (
+                f'Неовтаризованый пользователь не может '
+                f'добавить книгу статус {response.status_code}!'
+            )
         )
         response = self.client.put(endpoint)
         self.assertEquals(
-            HTTPStatus(response.status_code).phrase == 'Unauthorized',
-            f'Не авторизованный пользователь не может редактировать книгу статус {response.status_code}!'
+            HTTPStatus(response.status_code).phrase,
+            'Unauthorized',
+            (
+                f'Не авторизованный пользователь не может '
+                f'редактировать книгу статус {response.status_code}!'
+            )
         )
         response = self.client.delete(endpoint)
         self.assertEquals(
-            HTTPStatus(response.status_code).phrase == 'Unauthorized',
-            f'Не авторизованный пользователь не может редактировать книгу статус {response.status_code}!'
+            HTTPStatus(response.status_code).phrase, 'Unauthorized',
+            (
+                f'Не авторизованный пользователь не может'
+                f' редактировать книгу статус {response.status_code}!'
+            )
         )
         response = self.client.delete(f'endpoint{self.book.id}/')
         self.assertEquals(
-            HTTPStatus(response.status_code).phrase == 'Unauthorized',
-            f'Не авторизованный пользователь не может редактировать книгу статус {response.status_code}!'
+            HTTPStatus(response.status_code).phrase, 'Unauthorized',
+            (
+                f'Не авторизованный пользователь не может '
+                f'редактировать книгу статус {response.status_code}!'
+            )
         )
 
     def test_create_book(self):
@@ -73,24 +89,39 @@ class TestBooks(TestCase):
             'title': 'TestBook_2',
             'description': 'Описание книги',
         }
-        response = self.autorized_client.post(endpoint, data=data)
+        response = self.autorized_client.post(
+            endpoint,
+            data=data,
+            **{'HTTP_AUTHORIZATION': f'Bearer {self.token}'}, follow=True)
         self.assertEquals(
-            HTTPStatus(response.status_code).phrase == 'OK',
-            'У авторизованного пользователя должна быть возможность создавать книги!'
+            HTTPStatus(response.status_code).phrase, 'OK',
+            (
+                'У авторизованного пользователя должна'
+                ' быть возможность создавать книги!'
+            )
         )
 
         book = Books.objects.get(data['title'])
         response = self.autorized_client.put(
             f'{endpoint}{book.id}/',
-            description='Изменим описание'
+            description='Изменим описание',
+            **{'HTTP_AUTHORIZATION': f'Bearer {self.token}'},
+            follow=True
         )
         self.assertEquals(
-            HTTPStatus(response.status_code).phrase == 'OK',
-            'У авторизованного пользователя должна быть возможность создавать книги!'
+            HTTPStatus(response.status_code).phrase, 'OK',
+            (
+                'У авторизованного пользователя должна'
+                ' быть возможность создавать книги!'
+            )
         )
         response = self.autorized_client.delete(
-            f'{endpoint}{book.id}/',)
+            f'{endpoint}{book.id}/', )
         self.assertEquals(
-            HTTPStatus(response.status_code).phrase == 'OK',
-            'У авторизованного пользователя должна быть возможность удалять свои книги!'
+            HTTPStatus(response.status_code).phrase,
+            'OK',
+            (
+                'У авторизованного пользователя должна'
+                ' быть возможность удалять свои книги!'
+            )
         )

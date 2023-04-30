@@ -1,6 +1,7 @@
-from book import settings
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
+
+from books_project import settings
 
 
 def generation_confirm_code(user):
