@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
-    IsAuthenticated,
+    IsAuthenticated
 )
 from api.serializers import (
     BooksSerializer,
@@ -17,11 +17,12 @@ from books.models import Books
 from rest_framework.response import Response
 from users.models import User
 from api.generator_code import generation_confirm_code
+from api.permissions import AuthorPermission
 
 
 class BooksViewSet(viewsets.ModelViewSet):
     serializer_class = BooksSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly, AuthorPermission,)
     queryset = Books.objects.all()
 
     def perform_create(self, serializer):
@@ -31,6 +32,7 @@ class BooksViewSet(viewsets.ModelViewSet):
 class UsersViewSet(viewsets.ModelViewSet):
     lookup_field = 'username'
     serializer_class = UserSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
     search_fields = ('username',)
     queryset = User.objects.all()
 
